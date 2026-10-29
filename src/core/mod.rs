@@ -1,4 +1,4 @@
-pub mod card;
+mod card;
 
 pub use card::Card;
 pub use card::Suit;
