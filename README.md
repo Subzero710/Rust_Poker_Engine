@@ -41,7 +41,7 @@ cargo test
 Report bugs and request features through
 [GitHub Issues](https://github.com/Subzero710/Rust_Poker_Engine/issues).
 
-Contributions are submitted through Pull Requests.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
 
 ## License
 
