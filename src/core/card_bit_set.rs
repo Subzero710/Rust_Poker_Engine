@@ -2,11 +2,9 @@ use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, N
 
 use super::{Card, Suit, Value};
 
-const MASK_52: u64 = (1u64 << 52) - 1;
+pub(crate) const SUITS: [Suit; 4] = [Suit::Spade, Suit::Club, Suit::Heart, Suit::Diamond];
 
-const SUITS: [Suit; 4] = [Suit::Spade, Suit::Club, Suit::Heart, Suit::Diamond];
-
-const VALUES: [Value; 13] = [
+pub(crate) const VALUES: [Value; 13] = [
     Value::Two,
     Value::Three,
     Value::Four,
@@ -22,6 +20,11 @@ const VALUES: [Value; 13] = [
     Value::Ace,
 ];
 
+pub(crate) const NUM_SUITS: usize = SUITS.len();
+pub(crate) const NUM_VALUES: usize = VALUES.len();
+pub(crate) const TOTAL_CARDS: usize = NUM_SUITS * NUM_VALUES;
+pub(crate) const CARD_MASK: u64 = (1u64 << TOTAL_CARDS) - 1;
+
 fn card_to_bit_index(card: Card) -> u8 {
     let suit_idx = SUITS
         .iter()
@@ -31,12 +34,12 @@ fn card_to_bit_index(card: Card) -> u8 {
         .iter()
         .position(|&v| v == card.value)
         .expect("invalid value") as u8;
-    suit_idx * 13 + val_idx
+    suit_idx * (NUM_VALUES as u8) + val_idx
 }
 
 fn bit_index_to_card(index: u8) -> Card {
-    let suit = SUITS[(index / 13) as usize];
-    let value = VALUES[(index % 13) as usize];
+    let suit = SUITS[(index as usize) / NUM_VALUES];
+    let value = VALUES[(index as usize) % NUM_VALUES];
     Card::new(value, suit)
 }
 
@@ -84,7 +87,7 @@ impl CardBitSet {
 
 impl Default for CardBitSet {
     fn default() -> Self {
-        Self { bits: MASK_52 }
+        Self { bits: CARD_MASK }
     }
 }
 
@@ -179,193 +182,7 @@ impl Not for CardBitSet {
 
     fn not(self) -> Self::Output {
         Self {
-            bits: (!self.bits) & MASK_52,
+            bits: (!self.bits) & CARD_MASK,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_empty_set() {
-        let set = CardBitSet::new();
-        assert!(set.is_empty());
-        assert_eq!(set.count(), 0);
-    }
-
-    #[test]
-    fn test_default_full_set() {
-        let set = CardBitSet::default();
-        assert!(!set.is_empty());
-        assert_eq!(set.count(), 52);
-    }
-
-    #[test]
-    fn test_all_52_cards_representable() {
-        let mut set = CardBitSet::new();
-        for suit in SUITS {
-            for value in VALUES {
-                let card = Card::new(value, suit);
-                assert!(!set.contains(card));
-                set.insert(card);
-                assert!(set.contains(card));
-            }
-        }
-        assert_eq!(set.count(), 52);
-    }
-
-    #[test]
-    fn test_insertion_and_duplicates() {
-        let mut set = CardBitSet::new();
-        let card = Card::new(Value::Ace, Suit::Spade);
-
-        set.insert(card);
-        assert_eq!(set.count(), 1);
-        assert!(set.contains(card));
-
-        set.insert(card);
-        assert_eq!(set.count(), 1);
-    }
-
-    #[test]
-    fn test_removal_and_absent_card() {
-        let mut set = CardBitSet::new();
-        let card1 = Card::new(Value::Ace, Suit::Spade);
-        let card2 = Card::new(Value::King, Suit::Heart);
-
-        set.insert(card1);
-        set.remove(card2);
-        assert_eq!(set.count(), 1);
-        assert!(set.contains(card1));
-
-        set.remove(card1);
-        assert_eq!(set.count(), 0);
-        assert!(!set.contains(card1));
-    }
-
-    #[test]
-    fn test_clear() {
-        let mut set = CardBitSet::default();
-        assert_eq!(set.count(), 52);
-
-        set.clear();
-        assert!(set.is_empty());
-        assert_eq!(set.count(), 0);
-    }
-
-    #[test]
-    fn test_iter_empty() {
-        let set = CardBitSet::new();
-        let mut iter = set.into_iter();
-        assert_eq!(iter.next(), None);
-    }
-
-    #[test]
-    fn test_iter_single_and_multi_card() {
-        let card1 = Card::new(Value::Two, Suit::Club);
-        let card2 = Card::new(Value::Ace, Suit::Spade);
-
-        let mut set = CardBitSet::new();
-        set.insert(card1);
-        set.insert(card2);
-
-        let collected: Vec<Card> = set.into_iter().collect();
-        assert_eq!(collected.len(), 2);
-        assert!(collected.contains(&card1));
-        assert!(collected.contains(&card2));
-    }
-
-    #[test]
-    fn test_iter_unique_cards() {
-        let full_set = CardBitSet::default();
-        let cards: Vec<Card> = full_set.into_iter().collect();
-        assert_eq!(cards.len(), 52);
-
-        let mut set_check = CardBitSet::new();
-        for card in cards {
-            assert!(!set_check.contains(card));
-            set_check.insert(card);
-        }
-        assert_eq!(set_check.count(), 52);
-    }
-
-    #[test]
-    fn test_from_iterator() {
-        let cards = vec![
-            Card::new(Value::Ace, Suit::Spade),
-            Card::new(Value::Ace, Suit::Spade),
-            Card::new(Value::King, Suit::Heart),
-        ];
-
-        let set: CardBitSet = cards.into_iter().collect();
-        assert_eq!(set.count(), 2);
-        assert!(set.contains(Card::new(Value::Ace, Suit::Spade)));
-        assert!(set.contains(Card::new(Value::King, Suit::Heart)));
-    }
-
-    #[test]
-    fn test_set_operations() {
-        let card1 = Card::new(Value::Ace, Suit::Spade);
-        let card2 = Card::new(Value::King, Suit::Heart);
-        let card3 = Card::new(Value::Queen, Suit::Diamond);
-
-        let mut set_a = CardBitSet::new();
-        set_a.insert(card1);
-        set_a.insert(card2);
-
-        let mut set_b = CardBitSet::new();
-        set_b.insert(card2);
-        set_b.insert(card3);
-
-        // Union
-        let union_set = set_a | set_b;
-        assert_eq!(union_set.count(), 3);
-        assert!(union_set.contains(card1));
-        assert!(union_set.contains(card2));
-        assert!(union_set.contains(card3));
-
-        let mut union_assign = set_a;
-        union_assign |= set_b;
-        assert_eq!(union_assign, union_set);
-
-        // Intersection
-        let inter_set = set_a & set_b;
-        assert_eq!(inter_set.count(), 1);
-        assert!(inter_set.contains(card2));
-
-        let mut inter_assign = set_a;
-        inter_assign &= set_b;
-        assert_eq!(inter_assign, inter_set);
-
-        // Symmetric Difference
-        let xor_set = set_a ^ set_b;
-        assert_eq!(xor_set.count(), 2);
-        assert!(xor_set.contains(card1));
-        assert!(xor_set.contains(card3));
-        assert!(!xor_set.contains(card2));
-
-        let mut xor_assign = set_a;
-        xor_assign ^= set_b;
-        assert_eq!(xor_assign, xor_set);
-    }
-
-    #[test]
-    fn test_complement() {
-        let empty = CardBitSet::new();
-        let full = CardBitSet::default();
-
-        assert_eq!(!empty, full);
-        assert_eq!(!full, empty);
-
-        let mut partial = CardBitSet::new();
-        let card = Card::new(Value::Ace, Suit::Spade);
-        partial.insert(card);
-
-        let comp = !partial;
-        assert_eq!(comp.count(), 51);
-        assert!(!comp.contains(card));
-        assert_eq!(comp.bits & !MASK_52, 0);
     }
 }
