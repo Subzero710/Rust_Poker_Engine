@@ -76,15 +76,6 @@ impl IntoIterator for Deck {
     }
 }
 
-impl IntoIterator for &Deck {
-    type Item = Card;
-    type IntoIter = CardBitSetIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-
 impl From<CardBitSet> for Deck {
     fn from(bitset: CardBitSet) -> Self {
         Self(bitset)

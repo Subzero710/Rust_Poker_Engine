@@ -1,22 +1,4 @@
-use crate::core::{Card, CardBitSet, Deck, Suit, Value};
-
-const SUITS: [Suit; 4] = [Suit::Spade, Suit::Club, Suit::Heart, Suit::Diamond];
-
-const VALUES: [Value; 13] = [
-    Value::Two,
-    Value::Three,
-    Value::Four,
-    Value::Five,
-    Value::Six,
-    Value::Seven,
-    Value::Eight,
-    Value::Nine,
-    Value::Ten,
-    Value::Jack,
-    Value::Queen,
-    Value::King,
-    Value::Ace,
-];
+use crate::core::{Card, CardBitSet, Deck};
 
 #[test]
 fn test_new_empty() {
@@ -35,18 +17,15 @@ fn test_default_contains_52_cards() {
 #[test]
 fn test_default_contains_every_possible_card() {
     let deck = Deck::default();
-    for suit in SUITS {
-        for value in VALUES {
-            let card = Card::new(value, suit);
-            assert!(deck.contains(&card));
-        }
+    for card in CardBitSet::default() {
+        assert!(deck.contains(&card));
     }
 }
 
 #[test]
 fn test_membership_checks() {
     let mut deck = Deck::new();
-    let card = Card::new(Value::Ace, Suit::Spade);
+    let card = CardBitSet::default().into_iter().next().unwrap();
     assert!(!deck.contains(&card));
     deck.insert(card);
     assert!(deck.contains(&card));
@@ -55,7 +34,7 @@ fn test_membership_checks() {
 #[test]
 fn test_insert_absent_card() {
     let mut deck = Deck::new();
-    let card = Card::new(Value::King, Suit::Heart);
+    let card = CardBitSet::default().into_iter().next().unwrap();
     assert!(deck.insert(card));
     assert!(deck.contains(&card));
     assert_eq!(deck.len(), 1);
@@ -64,7 +43,7 @@ fn test_insert_absent_card() {
 #[test]
 fn test_insert_already_present_card() {
     let mut deck = Deck::new();
-    let card = Card::new(Value::King, Suit::Heart);
+    let card = CardBitSet::default().into_iter().next().unwrap();
     assert!(deck.insert(card));
     assert!(!deck.insert(card));
     assert_eq!(deck.len(), 1);
@@ -73,7 +52,7 @@ fn test_insert_already_present_card() {
 #[test]
 fn test_remove_present_card() {
     let mut deck = Deck::default();
-    let card = Card::new(Value::Ace, Suit::Spade);
+    let card = CardBitSet::default().into_iter().next().unwrap();
     assert!(deck.contains(&card));
     assert!(deck.remove(&card));
     assert!(!deck.contains(&card));
@@ -82,7 +61,7 @@ fn test_remove_present_card() {
 #[test]
 fn test_remove_absent_card() {
     let mut deck = Deck::new();
-    let card = Card::new(Value::Ace, Suit::Spade);
+    let card = CardBitSet::default().into_iter().next().unwrap();
     assert!(!deck.remove(&card));
     assert_eq!(deck.len(), 0);
 }
@@ -90,8 +69,9 @@ fn test_remove_absent_card() {
 #[test]
 fn test_length_changes_after_insertion_and_removal() {
     let mut deck = Deck::new();
-    let card1 = Card::new(Value::Ace, Suit::Spade);
-    let card2 = Card::new(Value::King, Suit::Heart);
+    let mut iter = CardBitSet::default().into_iter();
+    let card1 = iter.next().unwrap();
+    let card2 = iter.next().unwrap();
 
     assert_eq!(deck.len(), 0);
 
@@ -115,20 +95,19 @@ fn test_length_changes_after_insertion_and_removal() {
 }
 
 #[test]
-#[allow(clippy::len_zero)]
 fn test_is_empty_consistency() {
     let mut deck = Deck::new();
     assert!(deck.is_empty());
-    assert_eq!(deck.is_empty(), deck.len() == 0);
+    assert_eq!(deck.len(), 0);
 
-    let card = Card::new(Value::Ten, Suit::Club);
+    let card = CardBitSet::default().into_iter().next().unwrap();
     deck.insert(card);
     assert!(!deck.is_empty());
-    assert_eq!(deck.is_empty(), deck.len() == 0);
+    assert_ne!(deck.len(), 0);
 
     deck.remove(&card);
     assert!(deck.is_empty());
-    assert_eq!(deck.is_empty(), deck.len() == 0);
+    assert_eq!(deck.len(), 0);
 }
 
 #[test]
@@ -141,7 +120,7 @@ fn test_iter_empty_deck() {
 #[test]
 fn test_iter_non_empty_deck_and_removed_cards() {
     let mut deck = Deck::default();
-    let removed_card = Card::new(Value::Ace, Suit::Spade);
+    let removed_card = CardBitSet::default().into_iter().next().unwrap();
     deck.remove(&removed_card);
 
     let collected: Vec<Card> = deck.iter().collect();
@@ -158,8 +137,10 @@ fn test_iter_non_empty_deck_and_removed_cards() {
 #[test]
 fn test_consuming_iteration() {
     let mut deck = Deck::new();
-    let card1 = Card::new(Value::Jack, Suit::Diamond);
-    let card2 = Card::new(Value::Queen, Suit::Heart);
+    let mut iter = CardBitSet::default().into_iter();
+    let card1 = iter.next().unwrap();
+    let card2 = iter.next().unwrap();
+
     deck.insert(card1);
     deck.insert(card2);
 
@@ -193,8 +174,10 @@ fn test_from_empty_card_bit_set() {
 #[test]
 fn test_from_non_empty_card_bit_set() {
     let mut bitset = CardBitSet::new();
-    let card1 = Card::new(Value::Nine, Suit::Club);
-    let card2 = Card::new(Value::Eight, Suit::Spade);
+    let mut iter = CardBitSet::default().into_iter();
+    let card1 = iter.next().unwrap();
+    let card2 = iter.next().unwrap();
+
     bitset.insert(card1);
     bitset.insert(card2);
 
@@ -209,8 +192,9 @@ fn test_deck_equality() {
     let mut deck1 = Deck::new();
     let mut deck2 = Deck::new();
 
-    let card1 = Card::new(Value::Two, Suit::Heart);
-    let card2 = Card::new(Value::Seven, Suit::Diamond);
+    let mut iter = CardBitSet::default().into_iter();
+    let card1 = iter.next().unwrap();
+    let card2 = iter.next().unwrap();
 
     deck1.insert(card1);
     deck1.insert(card2);
