@@ -1,5 +1,6 @@
 mod card;
 mod card_bit_set;
+mod card_iter;
 mod deck;
 mod error;
 
@@ -11,5 +12,6 @@ pub use card::Suit;
 pub use card::Value;
 pub use card_bit_set::CardBitSet;
 pub use card_bit_set::CardBitSetIter;
+pub use card_iter::CardIter;
 pub use deck::Deck;
 pub use error::CardParseError;
